@@ -1,28 +1,16 @@
-# https://docs.docker.com/build/building/context/#dockerignore-files
-<<<<<<< HEAD
-# Ignore all files by default
-*
-
-# Only add necessary files to the Docker build context (Dockerfiles are always included implicitly)
-!/build/
-!/internal/
-!/pkg/
-!/go.mod
-!/go.sum
-!main.go
-=======
-# Ignore OS-specific files and source-related noise, but don't ignore * by default
-# to avoid the CopyIgnoredFile warning when using COPY . /app
+# Ignore version control and IDE folders
 .git
 .github
-docs/
-*.bak
-*.md
-LICENSE
-Dockerfile*
-docker-compose*
-.dockerignore
 .vscode
 .idea
-!docs/luna.yml
->>>>>>> master
+
+# Ignore local build artifacts
+build/
+bin/
+
+# Ignore documentation that isn't needed for the binary
+docs/
+*.md
+LICENSE
+
+# Keep everything else for the Go build
