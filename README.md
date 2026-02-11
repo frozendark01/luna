@@ -18,7 +18,7 @@
 ![](docs/images/readme-main-image.png)
 
 
-### Install Galance
+## Install Galance
 ### Docker Install
 Create a new directory called `config` and add `luna.yml` file in the directory
 
