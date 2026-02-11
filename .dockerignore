@@ -1,4 +1,5 @@
 # https://docs.docker.com/build/building/context/#dockerignore-files
+<<<<<<< HEAD
 # Ignore all files by default
 *
 
@@ -9,3 +10,19 @@
 !/go.mod
 !/go.sum
 !main.go
+=======
+# Ignore OS-specific files and source-related noise, but don't ignore * by default
+# to avoid the CopyIgnoredFile warning when using COPY . /app
+.git
+.github
+docs/
+*.bak
+*.md
+LICENSE
+Dockerfile*
+docker-compose*
+.dockerignore
+.vscode
+.idea
+!docs/luna.yml
+>>>>>>> master

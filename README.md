@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/logo.png"></p>
 <h1 align="center">Luna </h1> <br/ >
-<p align="center">fork from Glance </p>
+<p align="center"> • fork from Glance •</p>
 <p align="center">
   <a href="#installation">Install</a> •
   <a href="docs/configuration.md#configuring-luna">Configuration</a> •
@@ -17,52 +17,12 @@
 
 ![](docs/images/readme-main-image.png)
 
-### Problem Statement
-Previously, when a monitored service changed status, users had to manually refresh the page to see the updated state. This created a poor user experience for services with frequently changing states.
-
-### Solution for monitoring services eg: DNS, TCP/HTTP/ICMP
-Implemented a push-based real-time notification system using:
-
-* Server-Sent Events (SSE) for bidirectional server-to-client communication
-* Background monitoring worker that polls service status at regular intervals
-* Event debouncing to prevent notification spam during service flapping
-* Partial DOM updates to efficiently refresh only affected widgets
-* Guard mechanisms to prevent duplicate initialization of UI components
-* More detailes - LIVE_EVENTS_IMPLEMENTATION •
-* Docker compose using provided directory structure (recommended)
-
-### Solution for monitoring services eg: custopm-api widgets
-* Added recursive polling that dives into container widgets (groups, split-columns)
-* Polls monitor and custom-api widgets every 15 seconds
-* Detects content changes and emits events
-* Custom-api widget change detection (widget-custom-api.go):
-* Added PrevCompiledHTML field to track previous content
-* Compares rendered HTML to detect changes
-* Emits custom-api:data_changed event when changes detected
-* Event hub with caching (events.go):
-
-* Server-Sent Events broadcast to connected clients
-* Event caching: Stores recent events for reconnecting clients
-* Debouncing per widget to prevent event spam
-* Robust numeric type handling for widget IDs
-* Browser-side DOM updates (page.js):
-
-* Listens for custom-api:data_changed events
-* Fetches updated widget HTML via /api/widgets/{id}/content/
-* Replaces widget DOM with new content
-* Re-initializes all widget setup functions
-* Widget registration fix:
-
-* Widgets inside containers are now registered in widgetByID map
-* Allows endpoint to fetch child widgets by ID
-
 
 ### Install Galance
+### Docker Install
+Create a new directory called `config` and add `luna.yml` file in the directory
 
-Create a new directory called `luna` and add luna.yml file in the directory
-When ready, run:
-
-```bash
+```yaml
 services:
   luna:
     image: ghcr.io/frozendark01/luna:main
@@ -89,5 +49,16 @@ services:
 ```bash
 docker compose up -d
 ```
+### Update Luna
+```bash
+docker compose down
+docker compose pull
+docker compose up -d
+```
+### Luna Installation on Linux environment (LXC, VPS, or Bare Metal).
+run:
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/frozendark01/luna/main/ct/luna.sh)"
+```
+** To update the lates build just type update.
 
-This is a fork of luna Dashboard with Live-Events. No manual refresh needed!

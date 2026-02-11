@@ -8,6 +8,7 @@ FROM alpine:3.21
 
 WORKDIR /app
 COPY --from=builder /app/luna .
+COPY docs/luna.yml /app/config/luna.yml
 
 EXPOSE 8080/tcp
 ENTRYPOINT ["/app/luna", "--config", "/app/config/luna.yml"]
