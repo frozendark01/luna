@@ -9,7 +9,6 @@ build/
 bin/
 
 # Ignore documentation that isn't needed for the binary
-docs/
 *.md
 LICENSE
 
