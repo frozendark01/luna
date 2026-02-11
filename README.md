@@ -17,10 +17,48 @@
 
 ![](docs/images/readme-main-image.png)
 
+## Features
+### Various widgets
+* RSS feeds
+* Subreddit posts
+* Hacker News posts
+* Weather forecasts
+* YouTube channel uploads
+* Twitch channels
+* Market prices
+* Docker containers status
+* Server stats
+* Custom widgets
+* [and many more...](docs/configuration.md#configuring-luna)
 
-## Install Galance
+### Fast and lightweight
+* Low memory usage
+* Few dependencies
+* Minimal vanilla JS
+* Single <20mb binary available for multiple OSs & architectures and just as small Docker container
+* Uncached pages usually load within ~1s (depending on internet speed and number of widgets)
+
+### Tons of customizability
+* Different layouts
+* As many pages/tabs as you need
+* Numerous configuration options for each widget
+* Multiple styles for some widgets
+* Custom CSS
+
+### Optimized for mobile devices
+Because you'll want to take it with you on the go.
+
+![](docs/images/mobile-preview.png)
+
+### Themeable
+Easily create your own theme by tweaking a few numbers or choose from one of the [already available themes](docs/themes.md).
+
+## Installation
 ### Docker Install
-Create a new directory called `config` and add `luna.yml` file in the directory
+Create a new directory called `config` and add [`luna.yml`](docs/luna.yml) file in the directory
+```bash
+mkdir config && wget -O config/luna.yml https://raw.githubusercontent.com/frozendark01/luna/refs/heads/main/docs/luna.yml
+```
 
 ```yaml
 services:
@@ -49,6 +87,12 @@ services:
 ```bash
 docker compose up -d
 ```
+If you encounter any issues, you can check the logs by running:
+
+```bash
+docker logs luna
+```
+
 ### Update Luna
 ```bash
 docker compose down
