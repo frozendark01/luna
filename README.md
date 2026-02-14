@@ -7,7 +7,7 @@
 
 </p>
 <p align="center">
-  <a href="https://github.com/frozendark01/luna/docs/LIVE_EVENTS_IMPLEMENTATION.md">New : Live Events Implementation</a> •
+  <a href="/docs/LIVE_EVENTS_IMPLEMENTATION.md">New : Live Events Implementation</a> •
   <a href="https://github.com/frozendark01/community-widgets">Community widgets</a> •
   <a href="docs/preconfigured-pages.md">Preconfigured pages</a> •
   <a href="docs/themes.md">Themes</a>
