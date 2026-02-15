@@ -38,7 +38,6 @@ pages:
               - title: Vaultwarden
                 url: https://www.vaultwarden.net/
                 icon: si:vaultwarden
-
           - type: bookmarks
             groups:
               - title: General

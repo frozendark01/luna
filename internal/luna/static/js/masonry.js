@@ -7,6 +7,11 @@ export function setupMasonries() {
     for (let i = 0; i < masonryContainers.length; i++) {
         const container = masonryContainers[i];
 
+        if (container.dataset.masonryInitialized === "true") {
+            continue;
+        }
+        container.dataset.masonryInitialized = "true";
+
         const options = {
             minColumnWidth: container.dataset.minColumnWidth || 330,
             maxColumns: container.dataset.maxColumns || 6,

@@ -21,6 +21,12 @@ function setupCarousels() {
 
     for (let i = 0; i < carouselElements.length; i++) {
         const carousel = carouselElements[i];
+
+        if (carousel.dataset.carouselInitialized === "true") {
+            continue;
+        }
+        carousel.dataset.carouselInitialized = "true";
+
         carousel.classList.add("show-right-cutoff");
         const itemsContainer = carousel.getElementsByClassName("carousel-items-container")[0];
 
@@ -104,6 +110,12 @@ function setupSearchBoxes() {
 
     for (let i = 0; i < searchWidgets.length; i++) {
         const widget = searchWidgets[i];
+
+        if (widget.dataset.searchInitialized === "true") {
+            continue;
+        }
+        widget.dataset.searchInitialized = "true";
+
         const defaultSearchUrl = widget.dataset.defaultSearchUrl;
         const target = widget.dataset.target || "_blank";
         const newTab = widget.dataset.newTab === "true";
@@ -206,46 +218,64 @@ function setupSearchBoxes() {
     }
 }
 
+const dynamicRelativeTimeState = {
+    elements: [],
+    intervalId: null,
+    visibilityListenerAdded: false,
+    updateInterval: 60 * 1000,
+};
+
 function setupDynamicRelativeTime() {
     const elements = document.querySelectorAll("[data-dynamic-relative-time]");
-    const updateInterval = 60 * 1000;
-    let lastUpdateTime = Date.now();
 
-    updateRelativeTimeForElements(elements);
-
-    const updateElementsAndTimestamp = () => {
-        updateRelativeTimeForElements(elements);
-        lastUpdateTime = Date.now();
-    };
-
-    const scheduleRepeatingUpdate = () => setInterval(updateElementsAndTimestamp, updateInterval);
-
-    if (document.hidden === undefined) {
-        scheduleRepeatingUpdate();
+    if (elements.length === 0) {
         return;
     }
 
-    let timeout = scheduleRepeatingUpdate();
+    dynamicRelativeTimeState.elements = elements;
 
-    document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            clearTimeout(timeout);
+    const updateElements = () => {
+        updateRelativeTimeForElements(dynamicRelativeTimeState.elements);
+    };
+
+    const startUpdates = () => {
+        if (dynamicRelativeTimeState.intervalId !== null) {
             return;
         }
+        dynamicRelativeTimeState.intervalId = setInterval(updateElements, dynamicRelativeTimeState.updateInterval);
+    };
 
-        const delta = Date.now() - lastUpdateTime;
-
-        if (delta >= updateInterval) {
-            updateElementsAndTimestamp();
-            timeout = scheduleRepeatingUpdate();
+    const stopUpdates = () => {
+        if (dynamicRelativeTimeState.intervalId === null) {
             return;
         }
+        clearInterval(dynamicRelativeTimeState.intervalId);
+        dynamicRelativeTimeState.intervalId = null;
+    };
 
-        timeout = setTimeout(() => {
-            updateElementsAndTimestamp();
-            timeout = scheduleRepeatingUpdate();
-        }, updateInterval - delta);
-    });
+    updateElements();
+
+    if (document.hidden === undefined) {
+        startUpdates();
+        return;
+    }
+
+    if (!dynamicRelativeTimeState.visibilityListenerAdded) {
+        dynamicRelativeTimeState.visibilityListenerAdded = true;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                stopUpdates();
+                return;
+            }
+
+            updateElements();
+            startUpdates();
+        });
+    }
+
+    if (!document.hidden) {
+        startUpdates();
+    }
 }
 
 function setupGroups() {
@@ -257,6 +287,12 @@ function setupGroups() {
 
     for (let g = 0; g < groups.length; g++) {
         const group = groups[g];
+
+        if (group.dataset.groupInitialized === "true") {
+            continue;
+        }
+        group.dataset.groupInitialized = "true";
+
         const titles = group.getElementsByClassName("widget-header")[0].children;
         const tabs = group.getElementsByClassName("widget-group-contents")[0].children;
         let current = 0;
@@ -809,43 +845,82 @@ async function setupPage() {
         }, 300);
     }
 
+    const applyPageContentUpdate = async (newContent) => {
+        if (newContent === pageContent) {
+            return false;
+        }
+
+        pageContent = newContent;
+        pageContentElement.innerHTML = newContent;
+
+        try {
+            setupPopovers();
+            setupClocks();
+            await setupCalendars();
+            await setupTodos();
+            setupCarousels();
+            setupSearchBoxes();
+            setupCollapsibleLists();
+            setupCollapsibleGrids();
+            setupGroups();
+            setupMasonries();
+            setupDynamicRelativeTime();
+            setupLazyImages();
+
+            for (let i = 0; i < contentReadyCallbacks.length; i++) {
+                contentReadyCallbacks[i]();
+            }
+        } catch (e) {
+            console.error('Error applying updated page content', e);
+        }
+
+        return true;
+    };
+
     // try to setup SSE stream; fall back to polling if not available
     const setupSSE = () => {
         if (typeof EventSource === 'undefined') return false;
 
-        try {
-            const es = new EventSource(`${pageData.baseURL}/api/events`);
+        let eventSource = null;
+        let reconnectTimeoutId = null;
 
-            es.onmessage = async (ev) => {
+        const clearReconnectTimeout = () => {
+            if (reconnectTimeoutId === null) return;
+            clearTimeout(reconnectTimeoutId);
+            reconnectTimeoutId = null;
+        };
+
+        const closeEventSource = () => {
+            clearReconnectTimeout();
+            if (!eventSource) return;
+            eventSource.close();
+            eventSource = null;
+        };
+
+        const scheduleReconnect = () => {
+            if (document.hidden || reconnectTimeoutId !== null) return;
+            reconnectTimeoutId = setTimeout(() => {
+                reconnectTimeoutId = null;
+                openEventSource();
+            }, 1000);
+        };
+
+        const openEventSource = () => {
+            if (document.hidden || eventSource !== null) return;
+
+            try {
+                eventSource = new EventSource(`${pageData.baseURL}/api/events`);
+            } catch (e) {
+                eventSource = null;
+                return;
+            }
+
+            eventSource.onmessage = async (ev) => {
                 try {
                     const msg = JSON.parse(ev.data);
                     if (msg.type === 'page:update' && msg.data && msg.data.slug === pageData.slug) {
                         const newContent = await fetchPageContent(pageData);
-                        if (newContent !== pageContent) {
-                            pageContent = newContent;
-                            pageContentElement.innerHTML = newContent;
-
-                            try {
-                                setupPopovers();
-                                setupClocks();
-                                await setupCalendars();
-                                await setupTodos();
-                                setupCarousels();
-                                setupSearchBoxes();
-                                setupCollapsibleLists();
-                                setupCollapsibleGrids();
-                                setupGroups();
-                                setupMasonries();
-                                setupDynamicRelativeTime();
-                                setupLazyImages();
-
-                                for (let i = 0; i < contentReadyCallbacks.length; i++) {
-                                    contentReadyCallbacks[i]();
-                                }
-                            } catch (e) {
-                                console.error('Error applying SSE-updated page content', e);
-                            }
-                        }
+                        await applyPageContentUpdate(newContent);
                     } else if (msg.type === 'monitor:site_changed') {
                         // update only the affected widget if possible
                         try {
@@ -878,10 +953,7 @@ async function setupPage() {
                             } else {
                                 // fallback to full page fetch if widget_id missing
                                 const newContent = await fetchPageContent(pageData);
-                                if (newContent !== pageContent) {
-                                    pageContent = newContent;
-                                    pageContentElement.innerHTML = newContent;
-                                }
+                                await applyPageContentUpdate(newContent);
                             }
                         } catch (e) {
                             console.error('Failed to fetch widget content after monitor event', e);
@@ -925,18 +997,34 @@ async function setupPage() {
                 }
             };
 
-            es.onerror = (e) => {
+            eventSource.onerror = (e) => {
                 console.error('SSE connection error', e);
-                // Do not forcibly close the EventSource here. Let the browser
-                // manage automatic reconnects. Forcing a close causes the
-                // client to unregister immediately which can cause missed
-                // events when they occur during a reconnect window.
+                closeEventSource();
+                scheduleReconnect();
             };
+        };
 
-            return true;
-        } catch (e) {
-            return false;
-        }
+        openEventSource();
+
+        document.addEventListener('visibilitychange', async () => {
+            if (document.hidden) {
+                closeEventSource();
+                return;
+            }
+
+            openEventSource();
+
+            try {
+                const newContent = await fetchPageContent(pageData);
+                await applyPageContentUpdate(newContent);
+            } catch (e) {
+                console.error('Failed to refresh page content after visibility change', e);
+            }
+        });
+
+        window.addEventListener('pagehide', closeEventSource);
+
+        return true;
     };
 
     // start a lightweight poller to refresh page content when it changes
@@ -957,28 +1045,7 @@ async function setupPage() {
                 const newContent = await fetchPageContent(pageData);
                 if (newContent !== lastContent) {
                     lastContent = newContent;
-                    pageContentElement.innerHTML = newContent;
-
-                    try {
-                        setupPopovers();
-                        setupClocks();
-                        await setupCalendars();
-                        await setupTodos();
-                        setupCarousels();
-                        setupSearchBoxes();
-                        setupCollapsibleLists();
-                        setupCollapsibleGrids();
-                        setupGroups();
-                        setupMasonries();
-                        setupDynamicRelativeTime();
-                        setupLazyImages();
-
-                        for (let i = 0; i < contentReadyCallbacks.length; i++) {
-                            contentReadyCallbacks[i]();
-                        }
-                    } catch (e) {
-                        console.error('Error applying updated page content', e);
-                    }
+                    await applyPageContentUpdate(newContent);
                 }
             } catch (e) {
                 console.error('Live poll failed:', e);
